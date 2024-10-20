@@ -1,0 +1,9 @@
+# Settings file for Logstash
+
+node.name: logstash
+path.data: /usr/share/logstash/data
+path.logs: /usr/share/logstash/logs
+
+# We disable monitoring since it's not necessary for basic setups
+xpack.monitoring.enabled: false
+

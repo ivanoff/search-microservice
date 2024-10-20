@@ -1,0 +1,31 @@
+{
+  "name": "search-microservice",
+  "description": "search microservice",
+  "version": "0.2.1",
+  "author": "Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua",
+  "license": "MIT",
+  "main": "./dist/client.js",
+  "types": "./dist/client.d.ts",
+  "scripts": {
+    "start": "bun ./server/src/index.ts",
+    "build": "bun build ./src/client.ts --outdir ./dist --target node --minify --external @types/node --external @types/bun && tsc"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.6",
+    "@types/node": "^22.4.1"
+  },
+  "keywords": [
+    "search",
+    "microservice",
+    "fulltext",
+    "fuzzy",
+    "synonyms"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivanoff/search-microservice.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ivanoff/search-microservice/issues"
+  }
+}

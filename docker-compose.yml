@@ -1,0 +1,36 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+  search-microservice-server:
+    image: oven/bun:latest
+    restart: unless-stopped
+    working_dir: /app
+    tty: true
+    command: bash -c "bun i && bun --watch src/index.ts"
+    environment:
+      - ELASTIC_NODE=http://elasticsearch:9200
+      - TOKEN=
+    volumes:
+      - ./server/src:/app/src
+      - ./server/package.json:/app/package.json
+    ports:
+      - 3000:3000
+    depends_on:
+      - elasticsearch
