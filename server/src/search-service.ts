@@ -4,26 +4,28 @@ class SearchService {
     private client: ElasticClient;
     private indexes: Record<string, boolean> = {};
     public synonyms: string[] = [];
+    public node: string;
 
     constructor(node: string = 'http://localhost:9200') {
-        this.initialize(node);
+        this.node = node;
     }
 
-    private async initialize(node: string) {
+    public async init() {
         while (true) {
             try {
                 this.client = new ElasticClient({
-                    node,
+                    node: this.node,
                     Connection: HttpConnection,
                 });
+                await this.client.ping();
+                console.log('Connection with ElasticSearch established');
                 break;
             } catch (error) {
-                console.error('Connection failed, retrying in 5 seconds...');
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log('Connection with ElasticSearch failed, retrying in 5 seconds...');
+                await Bun.sleep(5000);
             }
         }
 
-        await this.client.ping();
         const res = await this.client.cat.indices({ format: 'json' });
         res.forEach((index: any) => {
             if (index.index) this.indexes[index.index] = true;
@@ -31,6 +33,8 @@ class SearchService {
     }
 
     async createNewIndexWithSynonyms(index: string) {
+console.log(11111);
+
         await this.client.indices.create({
             index,
             body: {
@@ -119,7 +123,10 @@ class SearchService {
     }
 
     async updateSynonyms({ index, synonyms }: updateSynonyms) {
+        if (!this.indexes[index]) this.createNewIndexWithSynonyms(index);
+console.log(22222);
         await this.client.indices.close({ index });
+console.log(33333, synonyms);
 
         await this.client.indices.putSettings({
             index,
@@ -164,7 +171,7 @@ class SearchService {
 
         this.synonyms = synonyms;
 
-        return true;
+        return { ok: true };
     }
 
     async searchDocuments({ index, text, from = 0, size = 10 }: SearchDocument & { from?: number; size?: number }) {

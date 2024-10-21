@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "@elastic/elasticsearch": "^8.15.1",
-    "hono": "^4.6.5"
+    "hono": "^4.6.5",
+    "the-log": "^3.0.1"
   },
   "devDependencies": {
     "@types/bun": "^1.1.11",

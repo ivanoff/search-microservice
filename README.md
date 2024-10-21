@@ -1,113 +1,224 @@
-![mail-microservice](./logo.webp)
+![Search Microservice](./logo.webp)
 
 # Search Microservice
 
-This microservice provides a RESTful API for managing and searching text data with synonym support. It includes endpoints for setting configurations, adding, updating, deleting, and searching text data.
+The **Search Microservice** provides a RESTful API for managing and searching text data, with built-in support for synonyms. It features endpoints for configuring settings, and for adding, updating, deleting, and searching text data.
 
-The search functionality uses a combination of fuzzy matching and synonym matching to provide more comprehensive results.
+The search functionality is powered by **Elasticsearch**, utilizing both fuzzy matching and synonym matching to deliver highly relevant and comprehensive search results. This enables flexible and intelligent search queries.
 
-## Example Search
+- [Search Microservice](#search-microservice)
+  - [Example Usage](#example-usage)
+    - [Adding Synonyms](#adding-synonyms)
+    - [Adding Text Data](#adding-text-data)
+    - [Performing a Search](#performing-a-search)
+      - [Search Result](#search-result)
+  - [Example Searches](#example-searches)
+  - [Installation](#installation)
+    - [Initialize Data Folder](#initialize-data-folder)
+    - [Start the Server:](#start-the-server)
+  - [API Endpoints](#api-endpoints)
+    - [Set Synonyms](#set-synonyms)
+      - [Request Body](#request-body)
+      - [Example Request](#example-request)
+    - [Get Synonyms](#get-synonyms)
+      - [Example Request](#example-request-1)
+    - [Add Text Data](#add-text-data)
+      - [Request Body](#request-body-1)
+      - [Example Request](#example-request-2)
+    - [Update Text Data](#update-text-data)
+      - [Request Body](#request-body-2)
+      - [Example Request](#example-request-3)
+    - [Delete Text Data](#delete-text-data)
+      - [Example Request](#example-request-4)
+    - [Search](#search)
+      - [Example Request](#example-request-5)
+  - [Possible Errors](#possible-errors)
+    - [`TOO_MANY_REQUESTS/12/disk usage exceeded`](#too_many_requests12disk-usage-exceeded)
+      - [Solution:](#solution)
 
-Here are some example searches demonstrating the fuzzy matching and synonym support:
+
+## Example Usage
+
+### Adding Synonyms
+
+```bash
+# Add synonyms 'title, subject' for the 'news' index
+curl -X POST http://localhost:3000/news/synonyms \
+  -H 'Content-Type: application/json' \
+  -d '{ "synonyms": ["title, subject"] }'
+```
+
+### Adding Text Data
+
+```bash
+# Add new text data to the 'news' index
+curl -X POST http://localhost:3000/news \
+  -H 'Content-Type: application/json' \
+  -d '{ "id": 1, "text": ["News title", "News detailed content"] }'
+```
+
+### Performing a Search
+
+```bash
+# Search for 'subject' in the 'news' index
+curl -X GET http://localhost:3000/news?search=subject
+```
+
+#### Search Result
+
+```json
+[
+  {
+    "_index": "news",
+    "_type": "_doc",
+    "_id": "1",
+    "_score": 0.2876821,
+    "_source": {
+      "text": [
+        "News title",
+        "News detailed content"
+      ]
+    },
+    "highlight": {
+      "text": [
+        "News **title**"
+      ]
+    }
+  }
+]
+```
+
+## Example Searches
+
+Here are some examples that demonstrate the power of fuzzy matching and synonym support:
 
 - Searching for `text` will match `text`.
 - Searching for `Txt` will match `text`.
 - Searching for `Tuxt` will match `text`.
-- Searching for `automobile` will match `car`. (in case you add synonyms "automobile, car")
+- Searching for `automobile` will match `car`, provided the synonym `"automobile, car"` has been configured.
 
-## Instalation
+## Installation
 
-- Create `data` folder:
+To install and run the microservice:
 
-````bash
-./init.sh
-````
-
-- Run server
-
+```bash
+git clone https://github.com/ivanoff/search-microservice.git
+cd search-microservice
 ```
+
+### Initialize Data Folder
+
+```bash
+./init.sh
+```
+
+### Start the Server:
+
+```bash
 docker compose up -d
 ```
 
 ## API Endpoints
 
-### Set configuration
+### Set Synonyms
 
-`POST /` + `body`
+`POST /:index/synonyms`
 
-```json
-{
-    "synonyms": [
-        ["word1, synonym word1, synonym word1"],
-        ["word2, synonym word2, synonym word2"]
-    ]
-}
-```
+Sets synonyms for the specified index.
 
-**Curl example:**
-
-```bash
-curl -X POST http://localhost:3000/ -H 'Content-Type: application/json' -d '{
-    "synonyms": [
-        ["word1, synonym word1, synonym word1"],
-        ["word2, synonym word2, synonym word2"]
-    ]
-}'
-```
-
-### Get configuration 
-
-`GET /`
-
-**Curl example:**
-
-```bash
-curl -X GET http://localhost:3000/
-```
-
-### Add text data 
-
-`POST /:index` + `body`
+#### Request Body
 
 ```json
 {
-    "id": ":indexId",
-    "text": ["text data", "another text data"]
+  "synonyms": [
+    "word1, synonym word1, synonym word1",
+    "word2, synonym word2, synonym word2"
+  ]
 }
 ```
 
-**Curl example:**
+#### Example Request
 
 ```bash
-curl -X POST http://localhost:3000/news -H 'Content-Type: application/json' -d '{
+curl -X POST http://localhost:3000/news/synonyms \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "synonyms": [
+      "word1, synonym word1, synonym word1",
+      "word2, synonym word2, synonym word2"
+    ]
+  }'
+```
+
+### Get Synonyms
+
+`GET /:index/synonyms`
+
+Retrieves the synonym configuration for the specified index.
+
+#### Example Request
+
+```bash
+curl -X GET http://localhost:3000/news/synonyms
+```
+
+### Add Text Data
+
+`POST /:index`
+
+Adds new text data to the specified index.
+
+#### Request Body
+
+```json
+{
+  "id": ":indexId",
+  "text": ["text data", "additional text data"]
+}
+```
+
+#### Example Request
+
+```bash
+curl -X POST http://localhost:3000/news \
+  -H 'Content-Type: application/json' \
+  -d '{
     "id": 1,
-    "text": ["text data", "another text data"]
-}'
+    "text": ["text data", "additional text data"]
+  }'
 ```
 
-### Update text data
+### Update Text Data
 
-`PUT /:index/:indexId` + `body`
+`PUT /:index/:indexId`
+
+Updates the existing text data in the specified index.
+
+#### Request Body
 
 ```json
 {
-    "text": ["new text data", "another text data"]
+  "text": ["updated text data", "more updated text data"]
 }
 ```
 
-**Curl example:**
+#### Example Request
 
 ```bash
-curl -X PUT http://localhost:3000/news/1 -H 'Content-Type: application/json' -d '{
-    "text": ["new text data", "another text data"]
-}'
+curl -X PUT http://localhost:3000/news/1 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": ["updated text data", "more updated text data"]
+  }'
 ```
 
-### Delete text data
+### Delete Text Data
 
 `DELETE /:index/:indexId`
 
-**Curl example:**
+Deletes text data from the specified index.
+
+#### Example Request
 
 ```bash
 curl -X DELETE http://localhost:3000/news/1
@@ -117,31 +228,38 @@ curl -X DELETE http://localhost:3000/news/1
 
 `GET /:index?search=word&page=1&size=10`
 
-**Curl example:**
+Performs a search on the specified index with pagination support.
+
+#### Example Request
+
 ```bash
-curl -X GET http://localhost:3000/news?search=word1&page=1&size=10
+curl -X GET http://localhost:3000/news?search=word&page=1&size=10
 ```
 
-## Posible errors
+## Possible Errors
 
-## TOO_MANY_REQUESTS/12/disk usage exceeded
+### `TOO_MANY_REQUESTS/12/disk usage exceeded`
 
-```
+If you encounter an error like:
+
+```bash
 ResponseError: cluster_block_exception
 	Root causes:
 		cluster_block_exception: index [news] blocked by: [TOO_MANY_REQUESTS/12/disk usage exceeded flood-stage watermark, index has read-only-allow-delete block];
-      at /home/ivanoff/work/search-microservice/node_modules/@elastic/transport/lib/Transport.js:543:27
-      at processTicksAndRejections (native:1:1)
 ```
 
-**FIX:**
+#### Solution:
+
+You can resolve this issue by updating the Elasticsearch cluster settings:
 
 ```bash
-curl -X PUT "http://localhost:3000/_cluster/settings" -H 'Content-Type: application/json' -d '{
-  "persistent": {
-    "cluster.routing.allocation.disk.watermark.low": "97%",
-    "cluster.routing.allocation.disk.watermark.high": "98%",
-    "cluster.routing.allocation.disk.watermark.flood_stage": "99%"
-  }
-}'
+curl -X PUT "http://localhost:9200/_cluster/settings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "persistent": {
+      "cluster.routing.allocation.disk.watermark.low": "97%",
+      "cluster.routing.allocation.disk.watermark.high": "98%",
+      "cluster.routing.allocation.disk.watermark.flood_stage": "99%"
+    }
+  }'
 ```

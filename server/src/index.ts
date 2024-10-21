@@ -1,3 +1,4 @@
+import 'the-log';
 import { Hono } from 'hono';
 import SearchService from "./search-service";
 
@@ -7,6 +8,7 @@ const {
 } = process.env;
 
 const searchService = new SearchService(ELASTIC_NODE);
+await searchService.init();
 
 async function checkTokenHandler(c, next) {
     const token = c.req.header('Authorization');
@@ -15,11 +17,16 @@ async function checkTokenHandler(c, next) {
 }
 
 async function getSynonymsHandler(c) {
-    return c.json({ synonyms: searchService.synonyms });
+    const { index } = c.req.param();
+    console.log('getSynonymsHandler', { synonyms: searchService.synonyms });
+    return c.json({ synonyms: searchService.synonyms, index });
 }
 
 async function updateSynonymsHandler(c) {
-    return c.json(await searchService.updateSynonyms(await c.req.json()));
+    const { index } = c.req.param();
+    const req = await c.req.json()
+    console.log('updateSynonymsHandler', { ...req, index });
+    return c.json(await searchService.updateSynonyms({ ...req, index }));
 }
 
 async function saveDocumentHandler(c) {
@@ -58,8 +65,8 @@ const app = new Hono()
 
 app.use('*', checkTokenHandler);
 
-app.get('/', getSynonymsHandler);
-app.post('/', updateSynonymsHandler);
+app.get('/:index/synonyms', getSynonymsHandler);
+app.post('/:index/synonyms', updateSynonymsHandler);
 app.post('/:index', saveDocumentHandler);
 app.put('/:index/:id', updateDocumentHandler);
 app.delete('/:index/:id', deleteDocumentHandler);
