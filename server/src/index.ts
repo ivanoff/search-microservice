@@ -3,11 +3,18 @@ import { Hono } from 'hono';
 import SearchService from "./search-service";
 
 const {
-  TOKEN,
-  ELASTIC_NODE,
+    TOKEN,
+    ELASTIC_NODE: node = 'http://localhost:9200',
+    ELASTIC_USER: username,
+    ELASTIC_PASSWORD: password,
+    ELASTIC_API_KEY: apiKey,
+    ELASTIC_BEARER: bearer,
+    ELASTIC_REJECT_UNAUTHORIZED: rejectUnauthorizedStr,
+    ELASTIC_COMPRESSION: compression,
 } = process.env;
 
-const searchService = new SearchService(ELASTIC_NODE);
+const rejectUnauthorized = rejectUnauthorizedStr === 'true';
+const searchService = new SearchService({ node, username, password, apiKey, bearer, rejectUnauthorized, compression });
 await searchService.init();
 
 async function checkTokenHandler(c, next) {

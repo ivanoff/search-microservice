@@ -6,11 +6,20 @@ The **Search Microservice** provides a RESTful API for managing and searching te
 
 The search functionality is powered by **Elasticsearch**, utilizing both fuzzy matching and synonym matching to deliver highly relevant and comprehensive search results. This enables flexible and intelligent search queries.
 
+## Example
+
+For `news` index: adding synonyms, text data and performing a search
+
+```bash
+curl -X POST http://localhost:3000/news/synonyms -H 'Content-Type: application/json' -d '{ "synonyms": ["title, subject"] }'
+
+curl -X POST http://localhost:3000/news -H 'Content-Type: application/json' -d '{ "id": 1, "text": ["News title", "News detailed content"] }'
+
+curl -X GET http://localhost:3000/news?search=subject
+```
+
 - [Search Microservice](#search-microservice)
-  - [Example Usage](#example-usage)
-    - [Adding Synonyms](#adding-synonyms)
-    - [Adding Text Data](#adding-text-data)
-    - [Performing a Search](#performing-a-search)
+  - [Example](#example)
       - [Search Result](#search-result)
   - [Example Searches](#example-searches)
   - [Installation](#installation)
@@ -36,33 +45,6 @@ The search functionality is powered by **Elasticsearch**, utilizing both fuzzy m
     - [`TOO_MANY_REQUESTS/12/disk usage exceeded`](#too_many_requests12disk-usage-exceeded)
       - [Solution:](#solution)
 
-
-## Example Usage
-
-### Adding Synonyms
-
-```bash
-# Add synonyms 'title, subject' for the 'news' index
-curl -X POST http://localhost:3000/news/synonyms \
-  -H 'Content-Type: application/json' \
-  -d '{ "synonyms": ["title, subject"] }'
-```
-
-### Adding Text Data
-
-```bash
-# Add new text data to the 'news' index
-curl -X POST http://localhost:3000/news \
-  -H 'Content-Type: application/json' \
-  -d '{ "id": 1, "text": ["News title", "News detailed content"] }'
-```
-
-### Performing a Search
-
-```bash
-# Search for 'subject' in the 'news' index
-curl -X GET http://localhost:3000/news?search=subject
-```
 
 #### Search Result
 

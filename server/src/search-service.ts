@@ -3,25 +3,49 @@ import { Client as ElasticClient, HttpConnection } from '@elastic/elasticsearch'
 class SearchService {
     private client: ElasticClient;
     private indexes: Record<string, boolean> = {};
+    private node: string;
+    private username?: string;
+    private password?: string;
+    private apiKey?: string;
+    private bearer?: string;
+    private rejectUnauthorized?: boolean;
+    private compression?: string;
     public synonyms: string[] = [];
-    public node: string;
 
-    constructor(node: string = 'http://localhost:9200') {
+    constructor({ node, username, password, apiKey, bearer, rejectUnauthorized, compression }: SearchServiceOptions) {
         this.node = node;
+        this.username = username || (password ? 'elastic' : undefined);
+        this.password = password;
+        this.apiKey = apiKey;
+        this.bearer = bearer;
+        this.rejectUnauthorized = rejectUnauthorized;
+        this.compression = compression;
     }
 
     public async init() {
+        let auth;
+        if (this.username) {
+            auth = { username: this.username, password: this.password };
+        } else if (this.apiKey) {
+            auth = { apiKey: this.apiKey };
+        } else if (this.bearer) {
+            auth = { bearer: this.bearer };
+        }
+
         while (true) {
             try {
                 this.client = new ElasticClient({
-                    node: this.node,
                     Connection: HttpConnection,
+                    node: this.node,
+                    auth,
+                    ...(this.rejectUnauthorized && { tls: { rejectUnauthorized: this.rejectUnauthorized } }),
+                    ...(this.compression && { compression: this.compression === 'true' }),
                 });
                 await this.client.ping();
-                console.log('Connection with ElasticSearch established');
+                console.log('Connection with ElasticSearch established', this.node);
                 break;
             } catch (error) {
-                console.log('Connection with ElasticSearch failed, retrying in 5 seconds...');
+                console.log('Connection with ElasticSearch failed, retrying in 5 seconds...', this.node, error);
                 await Bun.sleep(5000);
             }
         }
@@ -124,9 +148,7 @@ console.log(11111);
 
     async updateSynonyms({ index, synonyms }: updateSynonyms) {
         if (!this.indexes[index]) this.createNewIndexWithSynonyms(index);
-console.log(22222);
         await this.client.indices.close({ index });
-console.log(33333, synonyms);
 
         await this.client.indices.putSettings({
             index,
@@ -178,43 +200,58 @@ console.log(33333, synonyms);
         const response = await this.client.search({
             index,
             body: {
-                from,
-                size,
-                query: {
-                    bool: {
-                        should: [
-                            {
-                                match: {
-                                    text: {
-                                        query: text,
-                                        fuzziness: 'AUTO',
-                                    },
+            from,
+            size,
+            query: {
+                bool: {
+                    should: [
+                        {
+                            match: {
+                                text: {
+                                query: text,
+                                fuzziness: 'AUTO',
                                 },
                             },
-                            {
-                                match: {
-                                    text_synonyms: {
-                                        query: text,
-                                    },
+                        },
+                        {
+                            match: {
+                                text_synonyms: {
+                                query: text,
                                 },
                             },
-                        ],
-                    },
+                        },
+                        {
+                            wildcard: {
+                                text: `*${text}*`,
+                            },
+                        },
+                    ],
                 },
-                highlight: {
-                    fields: {
-                        text: {},
-                        text_synonyms: {},
-                    },
-                    pre_tags: ["**"],
-                    post_tags: ["**"],
+            },
+            highlight: {
+                fields: {
+                text: {},
+                text_synonyms: {},
                 },
+                pre_tags: ["**"],
+                post_tags: ["**"],
+            },
             },
         });
 
         return response.hits.hits;
     }
-}
+};
+
+export type SearchServiceOptions = {
+    node: string;
+    username?: string;
+    password?: string;
+    apiKey?: string;
+    bearer?: string;
+    rejectUnauthorized?: boolean;
+    compression?: string;
+};
 
 export type BaseDocument = {
     index: string;

@@ -1,7 +1,7 @@
 import SearchClient from 'search-microservice';
 // import SearchClient from './src/client';
 
-const client = new SearchClient('http://localhost:9200');
+const client = new SearchClient({ node: 'http://localhost:9200' });
 
 // Update synonyms
 client.updateSynonyms(['fast', 'quick', 'speedy']).then(response => {
