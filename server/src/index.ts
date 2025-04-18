@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import SearchService from "./search-service";
 
 const {
+    npm_package_version,
     TOKEN,
     ELASTIC_NODE: node = 'http://localhost:9200',
     ELASTIC_USER: username,
@@ -12,6 +13,9 @@ const {
     ELASTIC_REJECT_UNAUTHORIZED: rejectUnauthorizedStr,
     ELASTIC_COMPRESSION: compression,
 } = process.env;
+
+console.log(`Search Microservice v.${npm_package_version} MIT License`);
+console.log(`Created by Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua`);
 
 const rejectUnauthorized = rejectUnauthorizedStr === 'true';
 const searchService = new SearchService({ node, username, password, apiKey, bearer, rejectUnauthorized, compression });
