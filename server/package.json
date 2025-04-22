@@ -1,4 +1,5 @@
 {
+  "version": "2.0.1",
   "type": "module",
   "dependencies": {
     "@elastic/elasticsearch": "^8.15.1",

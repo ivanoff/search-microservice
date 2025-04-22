@@ -1,9 +1,9 @@
 import 'the-log';
 import { Hono } from 'hono';
 import SearchService from "./search-service";
+import { version } from "../package.json";
 
 const {
-    npm_package_version,
     TOKEN,
     ELASTIC_NODE: node = 'http://localhost:9200',
     ELASTIC_USER: username,
@@ -14,7 +14,7 @@ const {
     ELASTIC_COMPRESSION: compression,
 } = process.env;
 
-console.log(`Search Microservice v.${npm_package_version} MIT License`);
+console.log(`Search Microservice v.${version} MIT License`);
 console.log(`Created by Dimitry Ivanov <2@ivanoff.org.ua> # curl -A cv ivanoff.org.ua`);
 
 const rejectUnauthorized = rejectUnauthorizedStr === 'true';
@@ -42,13 +42,13 @@ async function updateSynonymsHandler(c) {
 
 async function saveDocumentHandler(c) {
     const { index } = c.req.param();
-    const { id, text } = await c.req.json();
-    return c.json(await searchService.saveDocument({ index, id, text }));
+    const { id, ...data } = await c.req.json();
+    return c.json(await searchService.saveDocument({ index, id, ...data }));
 }
 
 async function updateDocumentHandler(c) {
-    const { index, id, text } = await c.req.json();
-    return c.json(await searchService.updateDocument({ index, id, text }));
+    const { index, id, ...data } = await c.req.json();
+    return c.json(await searchService.updateDocument({ index, id, ...data }));
 }
 
 async function deleteDocumentHandler(c) {
@@ -58,15 +58,16 @@ async function deleteDocumentHandler(c) {
 
 async function searchDocumentsHandler(c) {
     const { index } = c.req.param();
-    const search = c.req.query('search') || '';
+    const query = c.req.query() || {};
+
     const page = parseInt(c.req.query('page') || '1');
     const size = parseInt(c.req.query('size') || '10');
 
     const result = await searchService.searchDocuments({
         index,
-        text: search,
         from: (page - 1) * size,
         size,
+        ...query,
     });
 
     return c.json(result);

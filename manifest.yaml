@@ -1,0 +1,111 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-deployment
+  namespace: search
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+        ports:
+          - containerPort: 9200
+          - containerPort: 9300
+        env:
+          - name: ELASTIC_PASSWORD
+            value: "Elastic Password Here"
+          - name: discovery.type
+            value: single-node
+          - name: node.name
+            value: elasticsearch
+          - name: cluster.name
+            value: docker-cluster
+          - name: bootstrap.memory_lock
+            value: "true"
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+
+        volumeMounts:
+        - name: elastic-storage
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elastic-storage
+        hostPath:
+          path: /opt/data/elastic
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-api-deployment
+  namespace: search
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-api
+  template:
+    metadata:
+      labels:
+        app: search-api
+    spec:
+      containers:
+      - name: search-api
+        image: onmvp/search-microservice:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+          - name: TOKEN
+            value: "Service Token Here"
+          - name: ELASTIC_NODE
+            value: "http://battlepro-elasticsearch-service:9200"
+          - name: ELASTIC_PASSWORD
+            value: "Elastic Password Here"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+  namespace: search
+spec:
+  type: LoadBalancer
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+    - name: transport
+      protocol: TCP
+      port: 9300
+      targetPort: 9300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-api-service
+  namespace: search
+spec:
+  type: LoadBalancer
+  selector:
+    app: search-api
+  externalIPs:
+    - 10.152.184.184
+  ports:
+    - name: search-api
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

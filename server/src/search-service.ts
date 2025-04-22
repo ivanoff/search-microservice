@@ -57,8 +57,6 @@ class SearchService {
     }
 
     async createNewIndexWithSynonyms(index: string) {
-console.log(11111);
-
         await this.client.indices.create({
             index,
             body: {
@@ -99,29 +97,29 @@ console.log(11111);
         return true;
     }
 
-    async saveDocument({ index, id, text }: Document) {
+    async saveDocument({ index, id, ...data }: Document) {
         if (!this.indexes[index]) await this.createNewIndexWithSynonyms(index);
 
         const response = await this.client.index({
             index,
             id,
             body: {
-                text,
-                text_synonyms: text
+                // text_synonyms: text,
+                ...data,
             }
         });
 
         return response;
     }
 
-    async updateDocument({ index, id, text }: Document) {
+    async updateDocument({ index, id, ...data }: Document) {
         const response = await this.client.update({
             index,
             id,
             body: {
                 doc: {
-                    text,
-                    text_synonyms: text
+                    // text_synonyms: text,
+                    ...data,
                 }
             }
         });
@@ -196,46 +194,62 @@ console.log(11111);
         return { ok: true };
     }
 
-    async searchDocuments({ index, text, from = 0, size = 10 }: SearchDocument & { from?: number; size?: number }) {
+    async searchDocuments({ index, from = 0, size = 10, ...data }: SearchDocument & { from?: number; size?: number }) {
+        const mustData = Object.entries(data).filter(([key]) => key[0] !== '_')
+        const mustConditions: any = mustData && mustData.map(([key, value]) => ({
+            match: {
+                [key]: {
+                    query: value,
+                },
+            },
+        }));
+
+        const shouldData = Object.entries(data).filter(([key]) => key[0] === '_').map((m) => [m[0].replace(/^_/, ''), m[1]]);
+        const shouldConditions: any = shouldData && shouldData.map(([key, value]) => ([
+            {
+                match: {
+                    [key]: {
+                        query: value,
+                        fuzziness: 'AUTO',
+                    },
+                },
+            },
+            {
+                match: {
+                    text_synonyms: {
+                        query: value,
+                    },
+                },
+            },
+            {
+                wildcard: {
+                    [key]: `*${value}*`,
+                },
+            },
+        ]));
+
+        const highlightFields: any = shouldData && shouldData.reduce((acc, [key]) => ({ ...acc, [key]: {} }), {});
+
         const response = await this.client.search({
             index,
             body: {
-            from,
-            size,
-            query: {
-                bool: {
-                    should: [
-                        {
-                            match: {
-                                text: {
-                                query: text,
-                                fuzziness: 'AUTO',
-                                },
-                            },
-                        },
-                        {
-                            match: {
-                                text_synonyms: {
-                                query: text,
-                                },
-                            },
-                        },
-                        {
-                            wildcard: {
-                                text: `*${text}*`,
-                            },
-                        },
-                    ],
+                from,
+                size,
+                query: {
+                    bool: {
+                        ...(mustConditions && { must: mustConditions }),
+                        ...(shouldConditions && { should: shouldConditions.flat() }),
+                        minimum_should_match: shouldConditions?.length ? 1 : 0,
+                    },
                 },
-            },
-            highlight: {
-                fields: {
-                text: {},
-                text_synonyms: {},
+                highlight: {
+                    fields: {
+                        text_synonyms: {},
+                        ...highlightFields,
+                    },
+                    pre_tags: ["**"],
+                    post_tags: ["**"],
                 },
-                pre_tags: ["**"],
-                post_tags: ["**"],
-            },
             },
         });
 

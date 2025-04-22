@@ -1,6 +1,6 @@
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
     container_name: elasticsearch
     environment:
       - node.name=elasticsearch
@@ -8,6 +8,7 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ELASTIC_PASSWORD=123
     ulimits:
       memlock:
         soft: -1
@@ -26,6 +27,7 @@ services:
     command: bash -c "bun i && bun --watch src/index.ts"
     environment:
       - ELASTIC_NODE=http://elasticsearch:9200
+      - ELASTIC_PASSWORD=123
       - TOKEN=
     volumes:
       - ./server/src:/app/src

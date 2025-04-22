@@ -13,10 +13,14 @@ For `news` index: adding synonyms, text data and performing a search
 ```bash
 curl -X POST http://localhost:3000/news/synonyms -H 'Content-Type: application/json' -d '{ "synonyms": ["title, subject"] }'
 
-curl -X POST http://localhost:3000/news -H 'Content-Type: application/json' -d '{ "id": 1, "text": ["News title", "News detailed content"] }'
+curl -X POST http://localhost:3000/news -H 'Content-Type: application/json' -d '{ "id": 1, "title": "News title", "content": "News detailed content", category_id: 2 }'
 
-curl -X GET http://localhost:3000/news?search=subject
+curl -X GET 'http://localhost:3000/news?_title=subject&category_id=2'
 ```
+
+To `search by match`, you need to add `_` before the key name (for example, `_title`)
+
+```bash
 
 - [Search Microservice](#search-microservice)
   - [Example](#example)
@@ -208,14 +212,14 @@ curl -X DELETE http://localhost:3000/news/1
 
 ### Search
 
-`GET /:index?search=word&page=1&size=10`
+`GET /:index?_text=word&page=1&size=10`
 
 Performs a search on the specified index with pagination support.
 
 #### Example Request
 
 ```bash
-curl -X GET http://localhost:3000/news?search=word&page=1&size=10
+curl -X GET http://localhost:3000/news?_text=word&page=1&size=10
 ```
 
 ## Possible Errors
