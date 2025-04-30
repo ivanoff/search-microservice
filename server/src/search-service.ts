@@ -2,7 +2,6 @@ import { Client as ElasticClient, HttpConnection } from '@elastic/elasticsearch'
 
 class SearchService {
     private client: ElasticClient;
-    private indexes: Record<string, boolean> = {};
     private node: string;
     private username?: string;
     private password?: string;
@@ -10,6 +9,7 @@ class SearchService {
     private bearer?: string;
     private rejectUnauthorized?: boolean;
     private compression?: string;
+    public readonly indexes: Record<string, boolean> = {};
     public synonyms: string[] = [];
 
     constructor({ node, username, password, apiKey, bearer, rejectUnauthorized, compression }: SearchServiceOptions) {

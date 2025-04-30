@@ -27,6 +27,12 @@ async function checkTokenHandler(c, next) {
     await next();
 }
 
+async function checkIndexHandler(c, next) {
+    const { index } = c.req.param();
+    if (index && !searchService.indexes[`${index}`]) return c.json({ message: `Index ${index} not found` }, 403);
+    await next();
+}
+
 async function getSynonymsHandler(c) {
     const { index } = c.req.param();
     console.log('getSynonymsHandler', { synonyms: searchService.synonyms });
@@ -76,6 +82,7 @@ async function searchDocumentsHandler(c) {
 const app = new Hono()
 
 app.use('*', checkTokenHandler);
+app.use('*', checkIndexHandler);
 
 app.get('/:index/synonyms', getSynonymsHandler);
 app.post('/:index/synonyms', updateSynonymsHandler);
