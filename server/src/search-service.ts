@@ -59,6 +59,12 @@ class SearchService {
     }
 
     async createNewIndexWithSynonyms(index: string) {
+        const exists = await this.client.indices.exists({ index });
+        if (exists) {
+            this.indexes[index] = true;
+            return true;
+        }
+
         await this.client.indices.create({
             index,
             body: {
