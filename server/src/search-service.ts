@@ -51,7 +51,6 @@ class SearchService {
         }
 
         const res = await this.client.cat.indices({ format: 'json' });
-        console.log({ res });
 
         res.forEach((index: any) => {
             if (index.index) this.indexes[index.index] = true;
@@ -106,9 +105,6 @@ class SearchService {
     }
 
     async saveDocument({ index, id, ...data }: Document) {
-        console.log('Indexes', this.indexes);
-        console.log('Data', { index, id, ...data });
-        
         if (!this.indexes[index]) await this.createNewIndexWithSynonyms(index);
 
         const response = await this.client.index({

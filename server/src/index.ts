@@ -52,19 +52,6 @@ async function saveDocumentHandler(c) {
     return c.json(await searchService.saveDocument({ index, id, ...data }));
 }
 
-// async function saveDocumentHandler(c) {
-//     try {
-//         const { index } = c.req.param();
-//         const { id, ...data } = await c.req.json();
-//         return c.json(await searchService.saveDocument({ index, id, ...data }));
-//     } catch (error) {
-//         if (error.meta?.statusCode === 400 && error.message.includes('resource_already_exists_exception')) {
-//             return c.json({ error: 'Document already exists' }, 409);
-//         }
-//         throw error;
-//     }
-// }
-
 async function updateDocumentHandler(c) {
     const { index, id, ...data } = await c.req.json();
     return c.json(await searchService.updateDocument({ index, id, ...data }));
@@ -106,5 +93,17 @@ app.post('/:index', saveDocumentHandler);
 app.put('/:index/:id', updateDocumentHandler);
 app.delete('/:index/:id', deleteDocumentHandler);
 app.get('/:index', searchDocumentsHandler);
+
+app.get('/', (c) => {
+    return c.json({
+        message: 'Search Microservice',
+        version,
+    });
+});
+
+app.onError((error, c) => {
+    console.error(error);
+    return c.json({ message: 'Internal Server Error', error }, 500);
+});
 
 export default app;
