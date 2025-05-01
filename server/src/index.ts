@@ -82,7 +82,10 @@ async function searchDocumentsHandler(c) {
 const app = new Hono()
 
 app.use('*', checkTokenHandler);
-app.use('/:index', checkIndexHandler);
+
+app.get('/:index', checkIndexHandler);
+app.delete('/:index', checkIndexHandler);
+app.put('/:index/:id', checkIndexHandler);
 
 app.get('/:index/synonyms', getSynonymsHandler);
 app.post('/:index/synonyms', updateSynonymsHandler);
