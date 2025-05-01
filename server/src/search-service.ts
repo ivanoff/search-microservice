@@ -9,7 +9,7 @@ class SearchService {
     private bearer?: string;
     private rejectUnauthorized?: boolean;
     private compression?: string;
-    public readonly indexes: Record<string, boolean> = {};
+    public indexes: Record<string, boolean> = {};
     public synonyms: string[] = [];
 
     constructor({ node, username, password, apiKey, bearer, rejectUnauthorized, compression }: SearchServiceOptions) {
@@ -51,6 +51,8 @@ class SearchService {
         }
 
         const res = await this.client.cat.indices({ format: 'json' });
+        console.log({ res });
+
         res.forEach((index: any) => {
             if (index.index) this.indexes[index.index] = true;
         });
@@ -98,6 +100,9 @@ class SearchService {
     }
 
     async saveDocument({ index, id, ...data }: Document) {
+        console.log('Indexes', this.indexes);
+        console.log('Data', { index, id, ...data });
+        
         if (!this.indexes[index]) await this.createNewIndexWithSynonyms(index);
 
         const response = await this.client.index({
