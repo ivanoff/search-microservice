@@ -66,11 +66,12 @@ async function deleteDocumentHandler(c) {
 
 async function searchDocumentsHandler(c) {
     const { index } = c.req.param();
-    const query = c.req.query() || {};
-    console.log('SEARCH', { index, query });
+    const allQuery = c.req.query() || {};
+    console.log('SEARCH', { index, allQuery });
 
-    const page = parseInt(c.req.query('page') || 1);
-    const size = parseInt(c.req.query('size') || 10);
+    const { pageQuery, sizeQuery, ...query } = allQuery;
+    const page = parseInt(pageQuery) || 1;
+    const size = parseInt(sizeQuery) || 10;
 
     const result = await searchService.searchDocuments({
         index,
