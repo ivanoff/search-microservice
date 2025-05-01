@@ -69,7 +69,7 @@ async function searchDocumentsHandler(c) {
     const allQuery = c.req.query() || {};
     console.log('SEARCH', { index, allQuery });
 
-    const { pageQuery, sizeQuery, ...query } = allQuery;
+    const { page: pageQuery, size: sizeQuery, ...query } = allQuery;
     const page = parseInt(pageQuery) || 1;
     const size = parseInt(sizeQuery) || 10;
 
