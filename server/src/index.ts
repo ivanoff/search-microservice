@@ -49,6 +49,7 @@ async function updateSynonymsHandler(c) {
 async function saveDocumentHandler(c) {
     const { index } = c.req.param();
     const { id, ...data } = await c.req.json();
+    console.log('SAVE', { index, id, data });
     return c.json(await searchService.saveDocument({ index, id, ...data }));
 }
 
@@ -59,15 +60,17 @@ async function updateDocumentHandler(c) {
 
 async function deleteDocumentHandler(c) {
     const { index, id } = c.req.param();
+    console.log('SAVE', { index, id });
     return c.json(await searchService.deleteDocument({ index, id }));
 }
 
 async function searchDocumentsHandler(c) {
     const { index } = c.req.param();
     const query = c.req.query() || {};
+    console.log('SEARCH', { index, query });
 
-    const page = parseInt(c.req.query('page') || '1');
-    const size = parseInt(c.req.query('size') || '10');
+    const page = parseInt(c.req.query('page') || 1);
+    const size = parseInt(c.req.query('size') || 10);
 
     const result = await searchService.searchDocuments({
         index,
