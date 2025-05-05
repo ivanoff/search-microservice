@@ -141,11 +141,12 @@ class SearchService {
                 query: {
                     bool: {
                         must: [
-                            { match: { _id: id } }
+                            { term: { _id: id } }
                         ]
                     }
                 }
-            }
+            },
+            refresh: true,
         });
 
         return response;

@@ -60,7 +60,7 @@ async function updateDocumentHandler(c) {
 
 async function deleteDocumentHandler(c) {
     const { index, id } = c.req.param();
-    console.log('SAVE', { index, id });
+    console.log('DELETE', { index, id });
     return c.json(await searchService.deleteDocument({ index, id }));
 }
 
