@@ -112,6 +112,7 @@ class SearchService {
             id,
             body: {
                 // text_synonyms: text,
+                id,
                 ...data,
             }
         });
@@ -126,6 +127,7 @@ class SearchService {
             body: {
                 doc: {
                     // text_synonyms: text,
+                    id,
                     ...data,
                 }
             }
@@ -202,15 +204,22 @@ class SearchService {
         return { ok: true };
     }
 
-    async searchDocuments({ index, from = 0, size = 10, ...data }: SearchDocument & { from?: number; size?: number }) {
+    async searchDocuments({ index, from = 0, size = 10, sort, ...data }: SearchDocument & { from?: number; size?: number, sort?: string }) {
         const mustData = Object.entries(data).filter(([key]) => key[0] !== '_')
-        const mustConditions: any = mustData && mustData.map(([key, value]) => ({
-            match: {
-                [key]: {
-                    query: value,
+        const mustConditions: any = mustData && mustData.map(([key, value]) => (Array.isArray(value) ? 
+            {
+                terms: {
+                    [key]: value,
                 },
-            },
-        }));
+            } :
+            {
+                match: {
+                    [key]: {
+                        query: value,
+                    },
+                },
+            }
+        ));
 
         const shouldData = Object.entries(data).filter(([key]) => key[0] === '_').map((m) => [m[0].replace(/^_/, ''), m[1]]);
         const shouldConditions: any = shouldData && shouldData.map(([key, value]) => ([
@@ -238,6 +247,16 @@ class SearchService {
 
         const highlightFields: any = shouldData && shouldData.reduce((acc, [key]) => ({ ...acc, [key]: {} }), {});
 
+        const sortConditions: any = sort && sort.split(',').map((s) => {
+            const isDesc = s.startsWith('-');
+            const field = s.replace(/^-/, '');
+            return {
+                [field]: {
+                    order: isDesc ? 'desc' : 'asc',
+                },
+            };
+        });
+
         const response = await this.client.search({
             index,
             body: {
@@ -250,6 +269,7 @@ class SearchService {
                         minimum_should_match: shouldConditions?.length ? 1 : 0,
                     },
                 },
+                ...(sortConditions && { sort: sortConditions }),
                 highlight: {
                     fields: {
                         text_synonyms: {},

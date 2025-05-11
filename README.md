@@ -20,15 +20,16 @@ curl -X GET 'http://localhost:3000/news?_title=subject&category_id=2'
 
 To `search by match`, you need to add `_` before the key name (for example, `_title`)
 
-```bash
-
 - [Search Microservice](#search-microservice)
   - [Example](#example)
       - [Search Result](#search-result)
   - [Example Searches](#example-searches)
-  - [Installation](#installation)
-    - [Initialize Data Folder](#initialize-data-folder)
-    - [Start the Server:](#start-the-server)
+  - [Run Search Microservice](#run-search-microservice)
+    - [.env file](#env-file)
+    - [Docker Compose](#docker-compose)
+      - [Initialize Data Folder](#initialize-data-folder)
+      - [Start the Server](#start-the-server)
+    - [Kubernetes](#kubernetes)
   - [API Endpoints](#api-endpoints)
     - [Set Synonyms](#set-synonyms)
       - [Request Body](#request-body)
@@ -45,6 +46,8 @@ To `search by match`, you need to add `_` before the key name (for example, `_ti
       - [Example Request](#example-request-4)
     - [Search](#search)
       - [Example Request](#example-request-5)
+    - [Search with JSON Body](#search-with-json-body)
+      - [Example Request](#example-request-6)
   - [Possible Errors](#possible-errors)
     - [`TOO_MANY_REQUESTS/12/disk usage exceeded`](#too_many_requests12disk-usage-exceeded)
       - [Solution:](#solution)
@@ -83,7 +86,20 @@ Here are some examples that demonstrate the power of fuzzy matching and synonym 
 - Searching for `Tuxt` will match `text`.
 - Searching for `automobile` will match `car`, provided the synonym `"automobile, car"` has been configured.
 
-## Installation
+## Run Search Microservice
+
+### .env file
+
+Create a `.env` file in the root directory of the project. This file will contain the configuration for the Elasticsearch connection.
+
+```env
+TOKEN=<SERVICE_TOKEN_HERE(OPTIONAL)>
+
+ELASTIC_NODE=<URL_TO_ELASTICSEARCH>
+ELASTIC_PASSWORD=<PASSWORD_TO_ELASTICSEARCH>
+```
+
+### Docker Compose
 
 To install and run the microservice:
 
@@ -92,19 +108,116 @@ git clone https://github.com/ivanoff/search-microservice.git
 cd search-microservice
 ```
 
-### Initialize Data Folder
+#### Initialize Data Folder
 
 ```bash
 ./init.sh
 ```
 
-### Start the Server:
+#### Start the Server
 
 ```bash
 docker compose up -d
 ```
 
+### Kubernetes
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+        ports:
+          - containerPort: 9200
+          - containerPort: 9300
+        envFrom:
+        - secretRef:
+            name: elasticsearch-secrets
+        volumeMounts:
+        - name: elastic-storage
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elastic-storage
+        hostPath:
+          path: /opt/search-microservice/data/elastic
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-microservice-api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-microservice-api
+  template:
+    metadata:
+      labels:
+        app: search-microservice-api
+    spec:
+      containers:
+      - name: search-microservice-api
+        image: onmvp/search-microservice:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: search-microservice-api-secrets
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+    - name: transport
+      protocol: TCP
+      port: 9300
+      targetPort: 9300
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-microservice-api-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: search-microservice-api
+  ports:
+    - name: search-microservice-api
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+```
+
 ## API Endpoints
+
+- If `TOKEN` is set in the `.env` file, you need to add `Authorization` header with the token value to all requests (f.e. -H 'Authorization: <SERVICE_TOKEN_HERE>').
 
 ### Set Synonyms
 
@@ -220,6 +333,23 @@ Performs a search on the specified index with pagination support.
 
 ```bash
 curl -X GET http://localhost:3000/news?_text=word&page=1&size=10
+```
+
+### Search with JSON Body
+
+`POST /:index/search` + `application/json body`
+
+#### Example Request
+
+```bash
+curl -X POST http://localhost:3000/news/search \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "_text": "word",
+    "id": [1, 4, 10],
+    "page": 1,
+    "size": 10
+  }'
 ```
 
 ## Possible Errors

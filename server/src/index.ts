@@ -50,7 +50,10 @@ async function saveDocumentHandler(c) {
     const { index } = c.req.param();
     const { id, ...data } = await c.req.json();
     console.log('SAVE', { index, id, data });
-    return c.json(await searchService.saveDocument({ index, id, ...data }));
+    const dataArr = [].concat(data);
+    for (const d of data) {
+        return c.json(await searchService.saveDocument({ index, id, ...d }));
+    }
 }
 
 async function updateDocumentHandler(c) {
@@ -67,9 +70,10 @@ async function deleteDocumentHandler(c) {
 async function searchDocumentsHandler(c) {
     const { index } = c.req.param();
     const allQuery = c.req.query() || {};
-    console.log('SEARCH', { index, allQuery });
+    const body = c.req.json() || {};
+    console.log('SEARCH', { index, allQuery, body });
 
-    const { page: pageQuery, size: sizeQuery, ...query } = allQuery;
+    const { page: pageQuery, size: sizeQuery, sort, ...query } = { ...allQuery, ...body };
     const page = parseInt(pageQuery) || 1;
     const size = parseInt(sizeQuery) || 10;
 
@@ -77,6 +81,7 @@ async function searchDocumentsHandler(c) {
         index,
         from: (page - 1) * size,
         size,
+        sort,
         ...query,
     });
 
@@ -97,6 +102,7 @@ app.post('/:index', saveDocumentHandler);
 app.put('/:index/:id', updateDocumentHandler);
 app.delete('/:index/:id', deleteDocumentHandler);
 app.get('/:index', searchDocumentsHandler);
+app.post('/:index/search', searchDocumentsHandler);
 
 app.get('/', (c) => {
     return c.json({
