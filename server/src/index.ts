@@ -72,7 +72,7 @@ async function deleteDocumentHandler(c) {
 async function searchDocumentsHandler(c) {
     const { index } = c.req.param();
     const allQuery = c.req.query() || {};
-    const body = c.req.json() || {};
+    const body = c.req.method === 'POST' ? await c.req.json() : {};
     console.log('SEARCH', { index, allQuery, body });
 
     const { page: pageQuery, size: sizeQuery, sort, ...query } = { ...allQuery, ...body };
