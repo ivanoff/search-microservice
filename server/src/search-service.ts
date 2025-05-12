@@ -251,7 +251,7 @@ class SearchService {
             const isDesc = s.startsWith('-');
             const field = s.replace(/^-/, '');
             return {
-                [field]: {
+                [`${field}.keyword`]: {
                     order: isDesc ? 'desc' : 'asc',
                 },
             };
