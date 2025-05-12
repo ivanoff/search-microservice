@@ -50,10 +50,12 @@ async function saveDocumentHandler(c) {
     const { index } = c.req.param();
     const { id, ...data } = await c.req.json();
     console.log('SAVE', { index, id, data });
-    const dataArr = [].concat(data);
-    for (const d of data) {
-        return c.json(await searchService.saveDocument({ index, id, ...d }));
+    const dataArr: any[] = [].concat(data).filter(Boolean);
+    const result: any = [];
+    for (const d of dataArr) {
+        result.push(await searchService.saveDocument({ index, id, ...d }));
     }
+    return c.json(result);
 }
 
 async function updateDocumentHandler(c) {
