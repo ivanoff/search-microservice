@@ -154,6 +154,19 @@ class SearchService {
         return response;
     }
 
+    async deleteIndex(index: string) {
+        if (!this.indexes[index]) return { ok: false, error: 'Index does not exist' };
+
+        const response = await this.client.indices.delete({ index });
+
+        if (response.acknowledged) {
+            delete this.indexes[index];
+            return { ok: true };
+        } else {
+            return { ok: false, error: 'Failed to delete index' };
+        }
+    }
+
     async updateSynonyms({ index, synonyms }: updateSynonyms) {
         if (!this.indexes[index]) this.createNewIndexWithSynonyms(index);
         await this.client.indices.close({ index });

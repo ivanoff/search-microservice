@@ -44,10 +44,12 @@ To `search by match`, you need to add `_` before the key name (for example, `_ti
       - [Example Request](#example-request-3)
     - [Delete Text Data](#delete-text-data)
       - [Example Request](#example-request-4)
-    - [Search](#search)
+    - [Delete Index](#delete-index)
       - [Example Request](#example-request-5)
-    - [Search with JSON Body](#search-with-json-body)
+    - [Search](#search)
       - [Example Request](#example-request-6)
+    - [Search with JSON Body](#search-with-json-body)
+      - [Example Request](#example-request-7)
   - [Possible Errors](#possible-errors)
     - [`TOO_MANY_REQUESTS/12/disk usage exceeded`](#too_many_requests12disk-usage-exceeded)
       - [Solution:](#solution)
@@ -321,6 +323,18 @@ Deletes text data from the specified index.
 
 ```bash
 curl -X DELETE http://localhost:3000/news/1
+```
+
+### Delete Index
+
+`DELETE /:index`
+
+Deletes the entire index, including all documents and settings.
+
+#### Example Request
+
+```bash
+curl -X DELETE http://localhost:3000/news
 ```
 
 ### Search

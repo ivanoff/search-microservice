@@ -90,6 +90,17 @@ async function searchDocumentsHandler(c) {
     return c.json(result);
 }
 
+async function deleteIndexHandler(c) {
+    const { index } = c.req.param();
+    console.log('DELETE INDEX', { index });
+    const response = await searchService.deleteIndex(index);
+    if (response.ok) {
+        return c.json({ message: `Index ${index} deleted successfully` });
+    } else {
+        return c.json({ message: `Failed to delete index ${index}` }, 500);
+    }
+}
+
 const app = new Hono()
 
 app.use('*', checkTokenHandler);
@@ -105,6 +116,7 @@ app.put('/:index/:id', updateDocumentHandler);
 app.delete('/:index/:id', deleteDocumentHandler);
 app.get('/:index', searchDocumentsHandler);
 app.post('/:index/search', searchDocumentsHandler);
+app.delete('/:index', deleteIndexHandler);
 
 app.get('/', (c) => {
     return c.json({
