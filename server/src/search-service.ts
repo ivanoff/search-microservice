@@ -1,23 +1,33 @@
 import { Client as ElasticClient, HttpConnection } from '@elastic/elasticsearch';
+import type { MappingDynamicTemplate, MappingProperty } from '@elastic/elasticsearch/lib/api/types';
 
-const EXTRA_FIELD_MAPPINGS: Record<string, { type: string }> = {
-    user_id: { type: 'long' },
-    game_id: { type: 'long' },
-    asset_type_id: { type: 'long' },
-    primary_category_id: { type: 'long' },
-    mode_id: { type: 'long' },
-    game_mode_id: { type: 'long' },
-    players_count_id: { type: 'long' },
-    server_id: { type: 'long' },
-    contest_id: { type: 'long' },
-    tournament_id: { type: 'long' },
-    game_franchise_id: { type: 'long' },
-    primary_mode_id: { type: 'long' },
-    trend: { type: 'float' },
-    metacritic: { type: 'integer' },
-    games_count: { type: 'long' },
-    views_total: { type: 'long' },
-    team_member_ids: { type: 'long' },
+const DEFAULT_DYNAMIC_TEMPLATES: Record<string, MappingDynamicTemplate>[] = [
+    {
+        strings_as_text: {
+            match_mapping_type: 'string',
+            mapping: {
+                type: 'text',
+                fields: {
+                    keyword: {
+                        type: 'keyword',
+                        ignore_above: 256,
+                    },
+                },
+            } as MappingProperty,
+        },
+    },
+];
+
+const BASE_PROPERTIES: Record<string, MappingProperty> = {
+    text: {
+        type: 'text',
+        analyzer: 'default_analyzer',
+        search_analyzer: 'synonym_search_analyzer',
+    } as MappingProperty,
+    text_synonyms: {
+        type: 'text',
+        analyzer: 'synonym_analyzer',
+    } as MappingProperty,
 };
 
 class SearchService {
@@ -78,50 +88,19 @@ class SearchService {
         });
     }
 
-    private buildBaseMappings() {
-        return {
-            text: {
-                type: 'text',
-                analyzer: 'default_analyzer',
-                search_analyzer: 'synonym_search_analyzer',
-            },
-            text_synonyms: {
-                type: 'text',
-                analyzer: 'synonym_analyzer',
-            },
-            ...EXTRA_FIELD_MAPPINGS,
-        };
-    }
-
-    private async getIndexProperties(index: string) {
-        try {
-            const res: any = await this.client.indices.getMapping({ index });
-            return res?.[index]?.mappings?.properties || {};
-        } catch {
-            return {};
-        }
-    }
-
-    private async putMissingMappings(index: string, properties: Record<string, any>) {
-        const existing = await this.getIndexProperties(index);
+    private async ensureBaseMapping(index: string) {
+        const current: any = await this.client.indices.getMapping({ index });
+        const properties = current?.[index]?.mappings?.properties || {};
         const missing: Record<string, any> = {};
 
-        for (const [key, value] of Object.entries(properties)) {
-            if (!existing[key]) missing[key] = value;
-        }
+        if (!properties.text) missing.text = BASE_PROPERTIES.text;
+        if (!properties.text_synonyms) missing.text_synonyms = BASE_PROPERTIES.text_synonyms;
 
         if (Object.keys(missing).length) {
             await this.client.indices.putMapping({
                 index,
                 body: { properties: missing },
             });
-        }
-    }
-
-    private clearSortFieldCache(index: string) {
-        const prefix = `${index}:`;
-        for (const key of this.sortFieldCache.keys()) {
-            if (key.startsWith(prefix)) this.sortFieldCache.delete(key);
         }
     }
 
@@ -140,7 +119,6 @@ class SearchService {
                         filter: {
                             synonym_filter: {
                                 type: 'synonym',
-                                updateable: true,
                                 synonyms: [],
                             },
                         },
@@ -162,13 +140,14 @@ class SearchService {
                     },
                 },
                 mappings: {
-                    properties: this.buildBaseMappings(),
+                    numeric_detection: true,
+                    dynamic_templates: DEFAULT_DYNAMIC_TEMPLATES,
+                    properties: BASE_PROPERTIES,
                 },
             },
         });
 
         this.indexes[index] = true;
-        this.clearSortFieldCache(index);
 
         return true;
     }
@@ -206,6 +185,7 @@ class SearchService {
             // ignore and fall through to cache null
         }
 
+        this.sortFieldCache.set(cacheKey, null);
         return null;
     }
 
@@ -266,7 +246,6 @@ class SearchService {
 
         if (response.acknowledged) {
             delete this.indexes[index];
-            this.clearSortFieldCache(index);
             return { ok: true };
         } else {
             return { ok: false, error: 'Failed to delete index' };
@@ -310,8 +289,7 @@ class SearchService {
         });
 
         await this.client.indices.open({ index });
-        await this.putMissingMappings(index, this.buildBaseMappings());
-        this.clearSortFieldCache(index);
+        await this.ensureBaseMapping(index);
 
         this.synonyms = synonyms;
 
