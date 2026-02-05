@@ -383,7 +383,7 @@ ResponseError: cluster_block_exception
 You can resolve this issue by updating the Elasticsearch cluster settings:
 
 ```bash
-curl -X PUT "http://localhost:9200/_cluster/settings" \
+curl -u "elastic:${ELASTIC_PASSWORD}" -X PUT "http://localhost:9200/_cluster/settings" \
   -H 'Content-Type: application/json' \
   -d '{
     "persistent": {
