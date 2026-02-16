@@ -9,6 +9,7 @@ class SearchService {
     private bearer?: string;
     private rejectUnauthorized?: boolean;
     private compression?: string;
+    private propertiesCache: Record<string, any> = {};
     public indexes: Record<string, boolean> = {};
     public synonyms: string[] = [];
 
@@ -260,11 +261,13 @@ class SearchService {
 
         const highlightFields: any = shouldData && shouldData.reduce((acc, [key]) => ({ ...acc, [key]: {} }), {});
 
+        const indexProperties = sort ? await this.getIndexProperties(index) : undefined;
         const sortConditions: any = sort && sort.split(',').map((s) => {
             const isDesc = s.startsWith('-');
             const field = s.replace(/^-/, '');
+            const sortableField = this.getSortableFieldName(field, indexProperties);
             return {
-                [`${field}.keyword`]: {
+                [sortableField]: {
                     order: isDesc ? 'desc' : 'asc',
                 },
             };
@@ -295,6 +298,46 @@ class SearchService {
         });
 
         return response.hits.hits;
+    }
+
+    private async getIndexProperties(index: string) {
+        if (this.propertiesCache[index]) return this.propertiesCache[index];
+
+        try {
+            const mappings: any = await this.client.indices.getMapping({ index });
+            const currentIndex = mappings[index] || Object.values(mappings)[0];
+            const properties = currentIndex?.mappings?.properties || {};
+            this.propertiesCache[index] = properties;
+            return properties;
+        } catch {
+            return undefined;
+        }
+    }
+
+    private getFieldDefinition(field: string, properties?: any) {
+        if (!properties) return undefined;
+
+        let currentProperties = properties;
+        let currentField: any;
+
+        for (const part of field.split('.')) {
+            currentField = currentProperties?.[part];
+            if (!currentField) return undefined;
+            currentProperties = currentField?.properties;
+        }
+
+        return currentField;
+    }
+
+    private getSortableFieldName(field: string, properties?: any) {
+        if (field.includes('.keyword')) return field;
+
+        const fieldDef = this.getFieldDefinition(field, properties);
+        if (fieldDef?.type === 'text' && fieldDef?.fields?.keyword) {
+            return `${field}.keyword`;
+        }
+
+        return field;
     }
 };
 
